@@ -3,12 +3,13 @@
 #include <utility>
 #include <queue>
 #include "kernels.h"
+#include "algorithms.h"
 
 
 using namespace std;
 
 
-matrix<float, 5, 5> gaussian_kernel(float sigma) {
+matrix<float, 5, 5> gaussian_kernel_matrix(float sigma) {
     matrix<float, 5, 5> gauss;
     float sum = 0, s = 2 * sigma * sigma;
 
@@ -37,40 +38,6 @@ void magnitude(QImage& input, const QImage& gx, const QImage& gy) {
             line[x] = qBound(0x00, static_cast<int>(hypot(gx_line[x], gy_line[x])), 0xFF);
     }
 }
-
-
-QImage convolution(const auto& kernel, const QImage& image) {
-    int kw = kernel[0].size(), kh = kernel.size(),
-        offsetx = kw / 2, offsety = kw / 2;
-    QImage out(image.size(), image.format());
-    float sum;
-
-    quint8 *line;
-    const quint8 *lookup_line;
-
-    for (int y = 0; y < image.height(); y++) {
-        line = out.scanLine(y);
-        for (int x = 0; x < image.width(); x++) {
-            sum = 0;
-
-            for (int j = 0; j < kh; j++) {
-                if (y + j < offsety || y + j >= image.height())
-                    continue;
-                lookup_line = image.constScanLine(y + j - offsety);
-                for (int i = 0; i < kw; i++) {
-                    if (x + i < offsetx || x + i >= image.width())
-                        continue;
-                    sum += kernel[j][i] * lookup_line[x + i - offsetx];
-                }
-            }
-
-            line[x] = qBound(0x00, static_cast<int>(sum), 0xFF);
-        }
-    }
-
-    return out;
-}
-
 
 QImage hysteresis(const QImage& image, float tmin, float tmax) {
     auto res = QImage(image.size(), image.format());
@@ -126,7 +93,7 @@ QImage hysteresis(const QImage& image, float tmin, float tmax) {
 
 
 QImage canny(const QImage& input, float sigma, float tmin, float tmax) {
-    QImage res = convolution(gaussian_kernel(sigma), input), // Gaussian blur
+    QImage res = convolution(gaussian_kernel_matrix(sigma), input), // Gaussian blur
            // Gradients
            gx = convolution(sobelx, res),
            gy = convolution(sobely, res);
